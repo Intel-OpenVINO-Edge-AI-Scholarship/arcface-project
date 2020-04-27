@@ -31,7 +31,7 @@ import pandas as pd
 import re
 import cv2
 from glob import glob
-from mpi4py.futures import MPIPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 
 arch_names = archs_face.__dict__.keys()
 
@@ -122,22 +122,15 @@ def main():
 
     if args.nrof_classes:
         nrof_classes = args.nrof_classes
-        np.random.shuffle(classes)
 
-    image_paths = [img_path for i in range(nrof_classes) for img_path in glob(os.path.join(path_exp, classes[i], "*.jpg"))[:5]]
+    image_paths = [img_path for i in range(nrof_classes) for img_path in glob(os.path.join(path_exp, classes[i], "*.*"))[0:1]]
     image_paths = np.array(image_paths).flatten()
     np.random.shuffle(image_paths)
-    image_paths = image_paths[:args.num_images].tolist()
+    image_paths = image_paths[:].tolist()
     real_classes = np.array(list(map(lambda a: a.split("/")[2], image_paths)))
 
     train_set = image_paths
     test_set = image_paths[:args.test_size]
-
-    # train_set, test_set, class_indices = facenet.split_dataset(image_paths,
-    # args.validation_set_split_ratio, args.min_nrof_val_images_per_class, 'SPLIT_CLASSES')
-
-    # split = int(round(len(real_classes)*(1-args.validation_set_split_ratio)))
-    split = len(image_paths)
 
     def path_to_tensor(img):
         face_cascade = cv2.CascadeClassifier('/usr/share/opencv/haarcascades/haarcascade_frontalface_default.xml')
@@ -149,29 +142,24 @@ def main():
         return cv2.resize(img[yes_face[1]:yes_face[1]+yes_face[3],yes_face[0]:yes_face[0]+yes_face[2]],(IMG_HEIGHT,IMG_WIDTH))
 
     def paths_to_tensor(executor, img_paths):
-        def img_to_tensor(img_path):
+        def img_to_tensor(img_path, ii):
             img = image.load_img(img_path)
             img = np.asarray(img.convert('L'))
             faces = path_to_tensor(img)
             if len(faces) > 0:
                 img = resize(faces[0], img)
-                return np.expand_dims(np.expand_dims(img,0),3)
+                return np.expand_dims(np.expand_dims(img,0),3), ii
             else:
                 return False
         list_tensors = []
         list_indices = []
-        for ii,result in tqdm(enumerate(img_paths)):
-            result = img_to_tensor(result)
+        for result in tqdm(executor.map(img_to_tensor, img_paths, range(len(img_paths)))):
             if result is not False:
-                list_tensors.append(result)
-                list_indices.append(ii)
+                list_tensors.append(result[0])
+                list_indices.append(result[1])
         return np.vstack(list_tensors), list_indices
 
-    # train_filenames = list(map(lambda x: x.split("/")[0], train_data_gen.filenames))
-    # test_filenames = list(map(lambda x: x.split("/")[0], test_data_gen.filenames))
-    # y_train = real_classes[class_indices[0:split].tolist()]
     y_train = real_classes
-    y_test = real_classes[:args.test_size]
 
     y_values = pd.get_dummies(y_train).values
     y_test_values = y_values[:args.test_size,:]
@@ -187,11 +175,11 @@ def main():
             metrics=['accuracy'])
     model.summary()
 
-    model.load_weights(os.path.join('models', args.name, 'model.hdf5'))
+    model.load_weights(os.path.join('models', args.name, 'model_sm.hdf5'))
 
     callbacks = [
-        ModelCheckpoint(os.path.join('models', args.name, 'model.hdf5'),
-            verbose=1, save_best_only=False, period=10, monitor='val_acc'),
+        ModelCheckpoint(os.path.join('models', args.name, 'model_sm.hdf5'),
+            verbose=1, save_best_only=False, period=1, monitor='val_acc'),
         CSVLogger(os.path.join('models', args.name, 'log.csv')),
         TerminateOnNaN()]
 
@@ -200,17 +188,20 @@ def main():
 
     if 'face' in args.arch:
         print("Training started")
-        train_executor = MPIPoolExecutor(max_workers=5)
+        train_executor = ThreadPoolExecutor(max_workers=6)
         # callbacks.append(LambdaCallback(on_batch_end=lambda batch, logs: print('W has nan value!!') if np.sum(np.isnan(model.layers[-4].get_weights()[0])) > 0 else 0))
         X_train, train_non_tensors = paths_to_tensor(train_executor, train_set)
-        test_executor = MPIPoolExecutor(max_workers=4)
+        test_executor = ThreadPoolExecutor(max_workers=6)
         X_test, test_non_tensors = paths_to_tensor(test_executor, test_set)
+        # for idx in range(0,len(y_values[train_non_tensors])-args.batch_size,args.batch_size):
         model.fit([X_train,y_values[train_non_tensors]], y_values[train_non_tensors],
             epochs=args.n_epochs,
-            batch_size=args.batch_size,
+            steps_per_epoch=args.steps_per_epoch,
             workers=args.workers,
+            validation_steps=1,
             validation_data=([X_test, y_test_values[test_non_tensors]], y_test_values[test_non_tensors]),
-            callbacks=callbacks, verbose=1)
+            callbacks=callbacks, 
+            verbose=1)
 
             # model.load_weights(os.path.join('models', args.name, 'model.hdf5'))
 

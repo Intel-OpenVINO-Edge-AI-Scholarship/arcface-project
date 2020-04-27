@@ -4,7 +4,7 @@ from keras.layers import Dense, Conv2D, BatchNormalization, Activation
 from keras.layers import Input, MaxPooling2D, Dropout, Flatten, Embedding
 from keras import regularizers
 import numpy as np
-from metrics import *
+from metrics_face import *
 
 weight_decay = 1e-4
 

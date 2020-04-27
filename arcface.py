@@ -8,7 +8,7 @@ from keras.optimizers import SGD, Adam
 from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau, CSVLogger, LearningRateScheduler
 
 import archs
-from metrics import *
+from metrics_face import *
 
 def obtain_model(modelpath):
     arcface_model = load_model(modelpath, custom_objects={'ArcFace': ArcFace})
