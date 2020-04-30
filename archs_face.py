@@ -60,6 +60,7 @@ def vgg8_arcface(args, n_classes=10):
     x = Flatten()(x)
     x = Dense(args.num_features, kernel_initializer='he_normal',
                 kernel_regularizer=regularizers.l2(weight_decay))(x)
+    # x = keras.activations.selu(x) / keras.backend.square(keras.backend.std(x))
     x = BatchNormalization()(x)
     output = ArcFace(n_classes, regularizer=regularizers.l2(weight_decay))([x, y])
 
