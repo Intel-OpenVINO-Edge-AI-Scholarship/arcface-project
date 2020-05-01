@@ -3,7 +3,7 @@ from tensorflow.keras import backend as K
 from keras.layers import Layer
 from keras import regularizers
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 tf.disable_v2_behavior()
 tf.enable_eager_execution()
 # from tensorflow.python.framework import ops
@@ -21,7 +21,6 @@ class ArcFace(Layer):
         self.regularizer = regularizers.get(regularizer)
 
     def build(self, input_shape):
-        print(input_shape)
         super(ArcFace, self).build(input_shape[0])
         self.W = self.add_weight(name='W',
                                 shape=(input_shape[0][-1], self.n_classes),
