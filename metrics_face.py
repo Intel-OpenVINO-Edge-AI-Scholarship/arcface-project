@@ -32,15 +32,15 @@ class ArcFace(Layer):
         x, y = inputs
         c = K.shape(x)[-1]
         # normalize feature
-        x = tf.nn.l2_normalize(x, axis=1)
+        x = tf.nn.l2_normalize(x, axis=1, name='norm_x')
         # normalize weights
-        W = tf.nn.l2_normalize(self.W, axis=0)
+        W = tf.nn.l2_normalize(self.W, axis=0, name='norm_W')
         # dot product
-        logits = x @ W
+        logits = tf.matmul(x, W, name='logits')
         # add margin
         # clip logits to prevent zero division when backward
-        theta = tf.acos(K.clip(logits, -1.0 + K.epsilon(), 1.0 - K.epsilon()))
-        target_logits = tf.cos(theta + self.m)
+        theta = tf.math.acos(K.clip(logits, -1.0 + K.epsilon(), 1.0 - K.epsilon()), name="arcface_acos")
+        target_logits = tf.math.cos(theta + self.m, name="arcface_cos")
         # sin = tf.sqrt(1 - logits**2)
         # cos_m = tf.cos(logits)
         # sin_m = tf.sin(logits)
