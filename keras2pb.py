@@ -32,7 +32,6 @@ output_names=None, clear_devices=None):
         freeze_var_names = list(set(v.op.name for v in tf.global_variables()).difference(keep_var_names or []))
         output_names = output_names or []
         output_names += [v.op.name for v in tf.global_variables()]
-        print(output_names)
         input_graph_def = graph.as_graph_def()
         mod_graph_def = tf.GraphDef()
         nodes = []
@@ -54,6 +53,7 @@ output_names=None, clear_devices=None):
 
                 del node.input[:]
                 node.input.extend(inp_names)
+        print("Removed nodes: ", ', '.join(remove_nodes))
         frozen_graph = convert_variables_to_constants(session, mod_graph_def, 
         output_names, freeze_var_names)
 
