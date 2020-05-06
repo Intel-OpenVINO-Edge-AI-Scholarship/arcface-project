@@ -13,7 +13,7 @@ import tensorflow as tf
 
 
 class ArcFace(Layer):
-    def __init__(self, n_classes=1000, s=30.0, m=0.50, regularizer=None, **kwargs):
+    def __init__(self, n_classes=1000, s=1.0, m=0.5, regularizer=None, **kwargs):
         super(ArcFace, self).__init__(**kwargs)
         self.n_classes = n_classes
         self.s = s

@@ -126,7 +126,7 @@ def main():
     if args.nrof_classes:
         nrof_classes = args.nrof_classes
 
-    image_paths = [img_path for i in range(nrof_classes) for img_path in glob(os.path.join(path_exp, classes[i], "*.jpg"))[6:7]]
+    image_paths = [img_path for i in range(nrof_classes) for img_path in glob(os.path.join(path_exp, classes[i], "*.jpg"))[2:9]]
     image_paths = np.array(image_paths).flatten()
     test_image_paths = [img_path for i in range(nrof_classes) for img_path in glob(os.path.join(path_exp, classes[i], "*.jpg"))[0:1]]
     test_image_paths = np.array(test_image_paths).flatten()
@@ -200,12 +200,16 @@ def main():
         X_train, train_non_tensors = paths_to_tensor(train_executor, train_set)
         test_executor = ThreadPoolExecutor(max_workers=2)
         X_test, test_non_tensors = paths_to_tensor(test_executor, test_set)
-        model.fit([X_train, y_values[train_non_tensors]], y_values[train_non_tensors],
-            epochs=args.n_epochs,
-            batch_size=args.batch_size,
-            workers=args.workers,
-            validation_data=([X_test, y_test_values[test_non_tensors]], y_test_values[test_non_tensors]),
-            callbacks=callbacks, verbose=1)
+        model.fit([X_train, 
+        y_values[train_non_tensors]], 
+        y_values[train_non_tensors],
+        epochs=args.n_epochs,
+        batch_size=args.batch_size,
+        workers=args.workers,
+        validation_data=([X_test, 
+        y_test_values[test_non_tensors]], 
+        y_test_values[test_non_tensors]),
+        callbacks=callbacks, verbose=1)
 
             # model.load_weights(os.path.join('models', args.name, 'model.hdf5'))
 
