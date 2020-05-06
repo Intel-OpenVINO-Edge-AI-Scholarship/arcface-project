@@ -47,6 +47,8 @@ def parse_args():
                             ' (default: vgg8)')
     parser.add_argument('--num-features', default=5, type=int,
                         help='dimention of embedded features')
+    parser.add_argument('--num-embedding', default=5, type=int,
+                        help='dimention of embedded features')
     parser.add_argument('--num_images', default=0, type=int,
                         help='dimention of embedded features')
     parser.add_argument('--batch_size', default=32, type=int,
@@ -119,22 +121,26 @@ def main():
 
     classes, nrof_classes = facenet.get_dataset(args.data_dir)
     path_exp = os.path.expanduser(args.data_dir)
+    test_exp = os.path.expanduser(args.test_data_dir)
 
     if args.nrof_classes:
         nrof_classes = args.nrof_classes
 
-    image_paths = [img_path for i in range(nrof_classes) for img_path in glob(os.path.join(path_exp, classes[i], "*.jpg"))[0:1]]
+    image_paths = [img_path for i in range(nrof_classes) for img_path in glob(os.path.join(path_exp, classes[i], "*.jpg"))[6:7]]
     image_paths = np.array(image_paths).flatten()
-    np.random.shuffle(image_paths)
+    test_image_paths = [img_path for i in range(nrof_classes) for img_path in glob(os.path.join(path_exp, classes[i], "*.jpg"))[0:1]]
+    test_image_paths = np.array(test_image_paths).flatten()
     image_paths = image_paths[:].tolist()
-    real_classes = np.array(list(map(lambda a: a.split("/")[2], image_paths)))
+    test_image_paths = test_image_paths[:].tolist()
+    real_classes = np.array(list(map(lambda a: a.split("/")[4], image_paths)))
+    test_real_classes = np.array(list(map(lambda a: a.split("/")[4], test_image_paths)))
 
     train_set = image_paths
-    test_set = image_paths[:args.test_size]
+    test_set = test_image_paths
 
     def path_to_tensor(img):
         face_cascade = cv2.CascadeClassifier('/usr/share/opencv/haarcascades/haarcascade_frontalface_default.xml')
-        faces_multi = face_cascade.detectMultiScale(img, 1.3, 5)
+        faces_multi = face_cascade.detectMultiScale(img, 1.1, 4)
         faces = [face.astype(np.int64).tolist() for face in faces_multi]
         return faces
 
@@ -144,11 +150,12 @@ def main():
     def paths_to_tensor(executor, img_paths):
         def img_to_tensor(img_path, ii):
             img = image.load_img(img_path)
-            img = np.asarray(img.convert('L'))
-            faces = path_to_tensor(img)
+            gray = np.asarray(img.convert('L'))
+            img = np.asarray(img)
+            faces = path_to_tensor(gray)
             if len(faces) > 0:
                 img = resize(faces[0], img)
-                return np.expand_dims(np.expand_dims(img,0),3), ii
+                return np.expand_dims(img,0), ii
             else:
                 return False
         list_tensors = []
@@ -160,10 +167,10 @@ def main():
         return np.vstack(list_tensors), list_indices
 
     y_train = real_classes
-    y_test = real_classes[:args.test_size]
+    y_test = test_real_classes
 
     y_values = pd.get_dummies(y_train).values
-    y_test_values = y_values[:args.test_size,:]
+    y_test_values = pd.get_dummies(y_test).values
 
     if args.optimizer == 'SGD':
         optimizer = SGD(lr=args.lr, momentum=args.momentum)
@@ -189,12 +196,11 @@ def main():
 
     if 'face' in args.arch:
         print("Training started")
-        train_executor = ThreadPoolExecutor(max_workers=3)
-        # callbacks.append(LambdaCallback(on_batch_end=lambda batch, logs: print('W has nan value!!') if np.sum(np.isnan(model.layers[-4].get_weights()[0])) > 0 else 0))
+        train_executor = ThreadPoolExecutor(max_workers=2)
         X_train, train_non_tensors = paths_to_tensor(train_executor, train_set)
         test_executor = ThreadPoolExecutor(max_workers=2)
         X_test, test_non_tensors = paths_to_tensor(test_executor, test_set)
-        model.fit([X_train,y_values[train_non_tensors]], y_values[train_non_tensors],
+        model.fit([X_train, y_values[train_non_tensors]], y_values[train_non_tensors],
             epochs=args.n_epochs,
             batch_size=args.batch_size,
             workers=args.workers,

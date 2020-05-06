@@ -1,0 +1,5 @@
+conversion from tensorflow .pb to openvino xml
+
+blocked by Acos and Cos operators
+
+I had to remove these nodes from export in tensorflow as they were unnecessary.

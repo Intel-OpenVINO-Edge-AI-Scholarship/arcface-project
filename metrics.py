@@ -4,8 +4,8 @@ from keras.layers import Layer
 from keras import regularizers
 
 import tensorflow as tf
-tf.disable_v2_behavior()
-tf.enable_eager_execution()
+# tf.disable_v2_behavior()
+# tf.enable_eager_execution()
 # from tensorflow.python.framework import ops
 # ops.reset_default_graph()
 
