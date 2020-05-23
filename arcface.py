@@ -10,9 +10,11 @@ import os
 import archs_face
 from metrics_face import *
 
-def obtain_arcface_model(args, arch="vgg8_arcface", n_classes=1000):
+def obtain_arcface_model(args, arch=None, n_classes=1000):
+    if not arch:
+        arch = args.arch
     arcface_model = archs_face.__dict__[arch](args, n_classes)
-    arcface_model.load_weights(os.path.join('models', "mnist_vgg8_arcface_5d", 'model_sm.hdf5'))
+    arcface_model.load_weights(os.path.join(args.folder, 'model_sm.hdf5'))
     # arcface_model = Model(inputs=arcface_model.input[0], outputs=arcface_model.layers[-3].output)
 
     return arcface_model

@@ -2,6 +2,7 @@
 from tensorflow.keras import backend as K
 from keras.layers import Layer
 from keras import regularizers
+from os import environ
 
 import tensorflow as tf
 # tf.disable_v2_behavior()
@@ -11,9 +12,13 @@ import tensorflow as tf
 
 # import tensorflow as tf
 
+if environ.get("arch") == "vgg8_arcface_lognorm":
+    n_classes=1000
+elif environ.get("arch") == "vgg8_arcface_pnorm":
+    n_classes=1000
 
 class ArcFace(Layer):
-    def __init__(self, n_classes=1000, s=1.0, m=0.5, regularizer=None, **kwargs):
+    def __init__(self, n_classes=n_classes, s=1.0, m=0.5, regularizer=None, **kwargs):
         super(ArcFace, self).__init__(**kwargs)
         self.n_classes = n_classes
         self.s = s

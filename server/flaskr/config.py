@@ -1,0 +1,9 @@
+# config.py
+# DEBUG = False
+# SQLALCHEMY_ECHO = False
+# instance/config.py
+DEBUG = True
+SQLALCHEMY_ECHO = True
+
+ARCFACE_PREBATCHNORM_LAYER_INDEX = -4
+ARCFACE_POOLING_LAYER_INDEX = -3
